@@ -60,12 +60,12 @@ def process_date(current_date):
     print("--------------------------------------------------------------------------------")
     return results
 
-def main():
+def main(start,end):
     start_time = time.time()
     
     # Date range to process
-    start_date = date(2020, 1, 1)
-    end_date = date(2020, 12, 31)
+    start_date = start
+    end_date = end
     
     # Create list of all dates to process
     date_list = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
@@ -91,11 +91,12 @@ def main():
                 all_results = pd.concat([all_results, date_results], ignore_index=True)
     
     # Save final results
-    all_results.to_csv('financial.csv', index=False)
+    all_results.to_csv('financial' + str(start) + '.csv', index=False)
     
     end_time = time.time()
     print(f"Total processing time: {end_time - start_time:.2f} seconds")
     print(f"Processed {len(date_list)} days with {len(all_results)} total entries")
 
 if __name__ == "__main__":
-    main()
+
+    main(date(2020, 1, 1),date(2020, 12, 31))
