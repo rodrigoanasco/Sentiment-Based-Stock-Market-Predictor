@@ -13,6 +13,13 @@ import concurrent.futures
 import time
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+
+
+#Load FINBERT Model Once
+finbert_tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+finbert_model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+finbert_pipeline = pipeline("sentiment-analysis", model=finbert_model, tokenizer=finbert_tokenizer)
 
 # Convert to set for faster lookups
 CREDIBLE_SITES = set([
@@ -114,17 +121,19 @@ def get_sentiment_from_url(url):
             return "Insufficient content", None
         
         # Perform sentiment analysis
-        blob = TextBlob(text)
-        polarity = blob.sentiment.polarity
-        
-        if polarity > 0.1:
-            return "Positive", polarity
-        elif polarity < -0.1:
-            return "Negative", polarity
+        result = finbert_pipeline(text[:512])[0]
+        label = result["label"].lower()
+        score = result["score"]
+
+        if label == "positive":
+            return "positive", score
+        elif label == "negative":
+            return "negative", score
         else:
-            return "Neutral", polarity
+            return "neutral", 0.0
+        
     except Exception as e:
-        return f"Error: {str(e)[:100]}", None
+        return f"Error:{str(e)[:100]}", None
 
 def pipeline_sentiment(url):
     """Full pipeline for a single URL: Check credibility, availability, 
@@ -162,7 +171,7 @@ def parallel_requests(urls, max_workers=10):
     
     return results
 
-def process_articles_batch(articles_df, max_results=3):
+def process_articles_batch(articles_df, max_results=5):
     """Process a batch of articles in parallel and return 
        a reduced list of results (max_results)."""
     if articles_df.empty:

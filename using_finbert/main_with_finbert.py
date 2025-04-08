@@ -8,7 +8,7 @@ import time
 from tqdm import tqdm
 
 # Import the functions from our parameters.py
-from paramters import pipeline_sentiment, parallel_requests
+from using_finbert.parameters_with_finbert import pipeline_sentiment, parallel_requests
 
 def process_date(current_date):
     """Fetch articles for a single day, run sentiment analysis, 
@@ -42,7 +42,7 @@ def process_date(current_date):
                 sentiment, score = url_results.get(row["url"], (None, None))
                 
                 # If we got a real sentiment polarity and haven't reached 3 articles yet
-                if score is not None and count < 3:
+                if score is not None and count < 5:
                     results.loc[len(results)] = [
                         str(current_date),
                         row['title'],
@@ -52,7 +52,7 @@ def process_date(current_date):
                     ]
                     count += 1
                 
-                if count == 3:
+                if count == 5:
                     break
         else:
             print("No articles found for the given filter criteria.")
@@ -60,7 +60,7 @@ def process_date(current_date):
         print(f"An error occurred: {e}")
     
     # If fewer than 3 results, fill in with neutral placeholders
-    while count < 3:
+    while count < 5:
         results.loc[len(results)] = [str(current_date), None, 0, "Neutral", None]
         count += 1
     
@@ -95,7 +95,7 @@ def main(start, end):
                 all_results = pd.concat([all_results, date_results], ignore_index=True)
     
     # Save final results
-    csv_filename = f'financial_2024_{start}.csv'
+    csv_filename = f'financial_{start}.csv'
     all_results.to_csv(csv_filename, index=False)
     
     end_time = time.time()
@@ -105,4 +105,8 @@ def main(start, end):
 
 if __name__ == "__main__":
     # Example: 2022 full year
+    main(date(2020, 1, 1), date(2020, 12, 31))
+    main(date(2021, 1, 1), date(2021, 12, 31))
+    main(date(2023, 1, 1), date(2023, 12, 31))
     main(date(2024, 1, 1), date(2024, 12, 31))
+
