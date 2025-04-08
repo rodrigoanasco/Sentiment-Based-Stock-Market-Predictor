@@ -86,6 +86,8 @@ print(f"Learned mapping: FinBERT = {reg.coef_[0]:.4f} x TextBlob + {reg.intercep
 text_blob_2020['Score_scaled'] = reg.predict(text_blob_2020['Score'].values.reshape(-1, 1)).clip(0, 1)
 
 # Exporting side to side in .csv text_blob without scaling and text_blob with scaling
+text_blob_2020.loc[text_blob_2020['Title'].isna(), 'Score_scaled'] = 0.0
+text_blob_2020.loc[text_blob_2020['Title'].isna(), 'Sentiment'] = 'Neutral'
 text_blob_2020[['Date', 'Title', 'Score', 'Score_scaled', 'Sentiment', 'language']].to_csv("textblob_2020_scaled.csv", index=False)
 
 
