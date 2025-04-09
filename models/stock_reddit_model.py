@@ -6,7 +6,12 @@ import xgboost as xgb
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 
-# Load data
+'''
+This file contains the code used to analyze Reddit datasets through machine learning models.
+Reddit sentiment is combined with historical stock data
+'''
+
+# Load data from CSV files
 try:
     day = pd.read_json("stock_one_day.json")
     reddit = pd.read_csv("reddit_article/combined_reddit.csv")
@@ -15,7 +20,7 @@ except FileNotFoundError:
     print("file not found")
     exit(1)
 
-# Make sure formats match
+# Make sure the formats match
 reddit['Date'] = pd.to_datetime(reddit['Date'])
 day['Date'] = pd.to_datetime(day['Date'])  
 
@@ -66,8 +71,6 @@ X_scaled = scaler.fit_transform(X)
 split_index = int(len(X_scaled) * 0.8)
 X_train, X_test = X_scaled[:split_index], X_scaled[split_index:]
 y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
-
-# Models
 
 # Random forest
 rf_model = RandomForestClassifier(
