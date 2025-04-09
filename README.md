@@ -1,5 +1,68 @@
 # 353-Project
-Determining in which way the sentiment affect stock market
+Sentiment Analysis on Stock Market
+(IMPORTANT NOTE: Due to Git push/pull errors, contributors do not show up properly. Obtain evidence of contribution by clicking on commit history.)
+
+## Reddit Analysis
+### Setup Instructions
+Install all required packages:
+```
+pip install pandas numpy matplotlib seaborn scikit-learn statsmodels yfinance transformers praw langdetect langcodes 
+```
+1. Get Data
+
+Set up Reddit API (provided ones are personal and only work for 2 weeks after submission)
+
+Adjust parameters if needed (changing time period of query parameters)
+
+Then run the following command:
+```
+python reddit_get_data.py
+```
+
+Output:
+- CSV file(s) between the specified years containing raw data
+
+2. Cleaning Data
+
+A CSV file is needed here, feel free to use the ones provided.
+
+Run the following command (replace data.csv with actual file name, ie. reddit_2024_2024-01-01.csv):
+
+```
+python reddit_clean_data.py data.csv
+```
+
+Output:
+- CSV file that contains organized and cleaned data
+
+3. Analysis
+
+A CSV file is needed here, feel free to use the ones provided.
+
+You can input multiple CSV files if you wish to combine their data points.
+
+Run the following command (replace data.csv with actual file name, ie. cleaned_reddit_2024.csv):
+
+```
+python reddit_analysis.py data.csv
+```
+
+Output:
+- Pearson Correlation values on command line
+- PNG images of the diagrams
+
+4. Combine
+
+Optional step - used for combining CSVs together to create a single larger one
+
+Run the following code (replace data1.csv and data2.csv with actual file names):
+
+```
+python reddit_combine.py data1.csv data2.csv
+```
+
+Output:
+- CSV file that contains one dataset appended to another (combined)
 
 ## News Processing
 ### Setup Instructions
@@ -24,7 +87,6 @@ Output:
 To adjust the date range, edit:
 
 main(date(2024, 1, 1), date(2024, 12, 31))
-
 
 parameters.py – Utility Functions
 

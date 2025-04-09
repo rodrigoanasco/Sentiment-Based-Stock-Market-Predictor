@@ -6,7 +6,6 @@ from langdetect import detect, DetectorFactory
 from langdetect.lang_detect_exception import LangDetectException
 from langcodes import Language
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
-import torch
 
 '''
 This file contains the code used to gather, clean (partially), and organize the data from reddit.
