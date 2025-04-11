@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
-# Importing csv files
+# === Import CSV Files ===
 text_blob_2020 = pd.read_csv("../news_processing/finace_article/financial_2020_2020-01-01.csv")
 finbert_2020 = pd.read_csv("../news_processing/using_finbert/financial_2020-01-01.csv")
 
@@ -18,36 +18,16 @@ finbert_2023 = pd.read_csv("../news_processing/using_finbert/financial_2023-01-0
 text_blob_2024 = pd.read_csv("../news_processing/finace_article/financial_2024_2024-01-01.csv")
 finbert_2024 = pd.read_csv("../news_processing/using_finbert/financial_2024-01-01.csv")
 
-# If sentiment is less than 0.05, turn sentiment to negative in text_blob
-text_blob_2020.loc[text_blob_2020['Score'] < 0.05, 'Sentiment'] = 'Negative'
-text_blob_2021.loc[text_blob_2021['Score'] < 0.05, 'Sentiment'] = 'Negative'
-text_blob_2022.loc[text_blob_2022['Score'] < 0.05, 'Sentiment'] = 'Negative'
-text_blob_2023.loc[text_blob_2023['Score'] < 0.05, 'Sentiment'] = 'Negative'
-text_blob_2024.loc[text_blob_2024['Score'] < 0.05, 'Sentiment'] = 'Negative'
+# === Adjust TextBlob Sentiment Labels ===
+for df in [text_blob_2020, text_blob_2021, text_blob_2022, text_blob_2023, text_blob_2024]:
+    df.loc[df['Score'] < 0.05, 'Sentiment'] = 'Negative'
+    df.loc[df['Sentiment'] == 'Negative', 'Score'] = df['Score'].apply(lambda x: -abs(x) if pd.notna(x) else x)
 
-# Concatenating and sorting
-# 2020
-df_2020 = pd.concat([text_blob_2020, finbert_2020], ignore_index=True)
-df_2020.sort_values(by=["Date", "Title"], inplace=True)
+# === Adjust FinBERT Negative Scores ===
+for df in [finbert_2020, finbert_2021, finbert_2022, finbert_2023, finbert_2024]:
+    df.loc[df['Sentiment'] == 'negative', 'Score'] = df['Score'].apply(lambda x: -abs(x) if pd.notna(x) else x)
 
-# 2021
-df_2021 = pd.concat([text_blob_2021, finbert_2021], ignore_index=True)
-df_2021.sort_values(by=["Date", "Title"], inplace=True)
-
-# 2022
-df_2022 = pd.concat([text_blob_2022, finbert_2022], ignore_index=True)
-df_2022.sort_values(by=["Date", "Title"], inplace=True)
-
-# 2023
-df_2023 = pd.concat([text_blob_2023, finbert_2023], ignore_index=True)
-df_2023.sort_values(by=["Date", "Title"], inplace=True)
-
-# 2024
-df_2024 = pd.concat([text_blob_2024, finbert_2024], ignore_index=True)
-df_2024.sort_values(by=["Date", "Title"], inplace=True)
-
-
-# Training Linear Regression on 2020 TextBlob vs FinBERT scores
+# === Train Regression to Align TextBlob to FinBERT ===
 tb20 = text_blob_2020[text_blob_2020['Sentiment'].str.lower().isin(['positive', 'negative', 'neutral'])].copy()
 fb20 = finbert_2020[finbert_2020['Sentiment'].str.lower().isin(['positive', 'negative', 'neutral'])].copy()
 
@@ -71,8 +51,7 @@ X = pivoted['TextBlob'].values.reshape(-1, 1)
 y = pivoted['FinBERT'].values
 reg = LinearRegression().fit(X, y)
 
-
-# Scale TextBlob scores for all years
+# === Scale TextBlob Scores with Preserved Sign and Clip to [-1, 1] ===
 all_textblob_scaled = []
 
 for year, df in {
@@ -83,56 +62,46 @@ for year, df in {
     2024: text_blob_2024,
 }.items():
     df = df.copy()
-    df['Score'] = reg.predict(df['Score'].values.reshape(-1, 1)).clip(0, 1)
+
+    signs = np.sign(df['Score'].values)
+    scaled = reg.predict(np.abs(df['Score'].values).reshape(-1, 1))
+    df['Score'] = (scaled * signs).clip(-1, 1)
+
     df.loc[df['Title'].isna(), 'Score'] = 0.0
     df.loc[df['Title'].isna(), 'Sentiment'] = 'Neutral'
+
     all_textblob_scaled.append(df[['Date', 'Title', 'Score', 'Sentiment']])
 
-# Add Source labels
 textblob_all_years = pd.concat(all_textblob_scaled, ignore_index=True)
 textblob_all_years['Source'] = 'TextBlob_scaled'
 
+# === Prepare FinBERT All Years Combined ===
 finbert_all_years = pd.concat([
     finbert_2020, finbert_2021, finbert_2022, finbert_2023, finbert_2024
 ], ignore_index=True)[['Date', 'Title', 'Score', 'Sentiment']]
 finbert_all_years['Source'] = 'FinBERT'
 
-# Merge all data
+# === Merge TextBlob and FinBERT ===
 merged = pd.concat([textblob_all_years, finbert_all_years], ignore_index=True)
 merged.sort_values(by=["Date", "Title"], inplace=True)
 
-# Group and resolve duplicates
-def resolve_group(group):
-    if group['Sentiment'].nunique() == 1:
-        return group.iloc[0]  # All sentiments the same, keep any
-    else:
-        return group.loc[group['Score'].idxmax()]  # Keep the one with highest score
-
-final = merged.groupby(['Date', 'Title'], group_keys=False).apply(resolve_group)
-final = final.reset_index(drop=True)
-
-# Ensure full daily coverage between Jan 1, 2020 and Dec 31, 2024
+# === Ensure all dates covered ===
 all_dates = pd.date_range(start='2020-01-01', end='2024-12-31')
-
-# Create a DataFrame with just dates
 full_index = pd.DataFrame({'Date': all_dates})
+merged['Date'] = pd.to_datetime(merged['Date'])
+complete = full_index.merge(merged, on='Date', how='left')
 
-# Merge on 'Date' to ensure every date appears
-final['Date'] = pd.to_datetime(final['Date'])  # just in case
-complete = full_index.merge(final, on='Date', how='left')
-
-# Convert sentiment score to bipolar range [-1, 1]
+# === Convert sentiment to signed score (extra precaution) ===
 complete['Sentiment'] = complete['Sentiment'].str.lower()
 complete.loc[complete['Sentiment'] == 'negative', 'Score'] *= -1
 
-# Save the cleaned file
-complete[['Date', 'Title', 'Score', 'Sentiment']].to_csv("FINAL_merged_deduplicated_with_all_dates.csv", index=False)
+# === Save full dataset ===
+complete[['Date', 'Title', 'Score', 'Sentiment']].to_csv("FINAL_merged_with_all_dates.csv", index=False)
 
-# Load your final dataset
-df = pd.read_csv("FINAL_merged_deduplicated_with_all_dates.csv")
-
-# Extract only the Score column
-score_only = df[['Score']]
-
-# Save to a new CSV
+# === Save score-only column ===
+score_only = complete[['Score']]
 score_only.to_csv("NEWS_SCORE_COLUMN_only.csv", index=False)
+
+# === Average score per day ===
+daily_avg = complete.groupby('Date', as_index=False)['Score'].mean()
+daily_avg.to_csv("DAILY_AVG_SCORE.csv", index=False)
