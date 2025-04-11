@@ -121,6 +121,18 @@ full_index = pd.DataFrame({'Date': all_dates})
 final['Date'] = pd.to_datetime(final['Date'])  # just in case
 complete = full_index.merge(final, on='Date', how='left')
 
+# Convert sentiment score to bipolar range [-1, 1]
+complete['Sentiment'] = complete['Sentiment'].str.lower()
+complete.loc[complete['Sentiment'] == 'negative', 'Score'] *= -1
 
 # Save the cleaned file
-complete[['Date', 'Title', 'Score', 'Sentiment']].to_csv("merged_deduplicated_with_all_dates.csv", index=False)
+complete[['Date', 'Title', 'Score', 'Sentiment']].to_csv("FINAL_merged_deduplicated_with_all_dates.csv", index=False)
+
+# Load your final dataset
+df = pd.read_csv("FINAL_merged_deduplicated_with_all_dates.csv")
+
+# Extract only the Score column
+score_only = df[['Score']]
+
+# Save to a new CSV
+score_only.to_csv("NEWS_SCORE_COLUMN_only.csv", index=False)
