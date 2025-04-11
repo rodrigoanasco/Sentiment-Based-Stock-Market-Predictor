@@ -110,3 +110,5 @@ if __name__ == "__main__":
     main(date(2023, 1, 1), date(2023, 12, 31))
     main(date(2024, 1, 1), date(2024, 12, 31))
 
+# current we need a model, make a simple one first then scale it up to a complcateed one 
+# need to scale accrodingly
