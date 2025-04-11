@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the prepared data
-data = pd.read_csv('aapl_sentiment_correlation.csv', index_col=0, parse_dates=True)
+data = pd.read_csv('aapl_imputed_complete.csv', index_col=0, parse_dates=True)
 
 # 1. Calculate correlations
 correlations = data.corr()['AAPL_Price'].sort_values(ascending=False)
