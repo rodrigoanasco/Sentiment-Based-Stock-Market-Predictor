@@ -1,6 +1,4 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 from sklearn.metrics import classification_report, accuracy_score
@@ -78,15 +76,15 @@ ensemble_pred = ((y_pred_rf.astype(int) + y_pred_xgb.astype(int)) >= 1).astype(i
 print(classification_report(y_test, ensemble_pred))
 
 
-# figure out the important features
+# plot data
 importance_rf = pd.Series(rf_model.feature_importances_, index=features)
 importance_xgb = pd.Series(xgb_model.feature_importances_, index=features)
 
-# Combine feature importances (average them)
+
 importance_combined = (importance_rf + importance_xgb) / 2
 importance_combined = importance_combined.sort_values(ascending=False)
 
-plt.figure(figsize=(10, 6))
+plt.figure()
 importance_combined.plot(kind='bar')
 plt.title('Important Features')
 plt.tight_layout()
