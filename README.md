@@ -4,7 +4,7 @@ Determining in which way the sentiment affect stock market
 ## News Processing
 
 
-### Finace Article (TextBlob) & 
+### Finace Article (TextBlob)
 ### `main.py`
 Dependencies
 
