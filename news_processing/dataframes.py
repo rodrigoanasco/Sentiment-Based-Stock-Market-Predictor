@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
-# === Import CSV Files ===
+# Import CSV Files 
 text_blob_2020 = pd.read_csv("../news_processing/finace_article/financial_2020_2020-01-01.csv")
 finbert_2020 = pd.read_csv("../news_processing/using_finbert/financial_2020-01-01.csv")
 
@@ -18,16 +18,16 @@ finbert_2023 = pd.read_csv("../news_processing/using_finbert/financial_2023-01-0
 text_blob_2024 = pd.read_csv("../news_processing/finace_article/financial_2024_2024-01-01.csv")
 finbert_2024 = pd.read_csv("../news_processing/using_finbert/financial_2024-01-01.csv")
 
-# === Adjust TextBlob Sentiment Labels ===
+#  Adjust TextBlob Sentiment Labels 
 for df in [text_blob_2020, text_blob_2021, text_blob_2022, text_blob_2023, text_blob_2024]:
     df.loc[df['Score'] < 0.05, 'Sentiment'] = 'Negative'
     df.loc[df['Sentiment'] == 'Negative', 'Score'] = df['Score'].apply(lambda x: -abs(x) if pd.notna(x) else x)
 
-# === Adjust FinBERT Negative Scores ===
+#  Adjust FinBERT Negative Scores
 for df in [finbert_2020, finbert_2021, finbert_2022, finbert_2023, finbert_2024]:
     df.loc[df['Sentiment'] == 'negative', 'Score'] = df['Score'].apply(lambda x: -abs(x) if pd.notna(x) else x)
 
-# === Train Regression to Align TextBlob to FinBERT ===
+# Train Regression to Align TextBlob to FinBERT
 tb20 = text_blob_2020[text_blob_2020['Sentiment'].str.lower().isin(['positive', 'negative', 'neutral'])].copy()
 fb20 = finbert_2020[finbert_2020['Sentiment'].str.lower().isin(['positive', 'negative', 'neutral'])].copy()
 
@@ -51,7 +51,7 @@ X = pivoted['TextBlob'].values.reshape(-1, 1)
 y = pivoted['FinBERT'].values
 reg = LinearRegression().fit(X, y)
 
-# === Scale TextBlob Scores with Preserved Sign and Clip to [-1, 1] ===
+# Scale TextBlob Scores with Preserved Sign and Clip to [-1, 1]
 all_textblob_scaled = []
 
 for year, df in {
@@ -75,33 +75,33 @@ for year, df in {
 textblob_all_years = pd.concat(all_textblob_scaled, ignore_index=True)
 textblob_all_years['Source'] = 'TextBlob_scaled'
 
-# === Prepare FinBERT All Years Combined ===
+# Prepare FinBERT All Years Combined
 finbert_all_years = pd.concat([
     finbert_2020, finbert_2021, finbert_2022, finbert_2023, finbert_2024
 ], ignore_index=True)[['Date', 'Title', 'Score', 'Sentiment']]
 finbert_all_years['Source'] = 'FinBERT'
 
-# === Merge TextBlob and FinBERT ===
+# Merge TextBlob and FinBERT
 merged = pd.concat([textblob_all_years, finbert_all_years], ignore_index=True)
 merged.sort_values(by=["Date", "Title"], inplace=True)
 
-# === Ensure all dates covered ===
+# Ensure all dates covered
 all_dates = pd.date_range(start='2020-01-01', end='2024-12-31')
 full_index = pd.DataFrame({'Date': all_dates})
 merged['Date'] = pd.to_datetime(merged['Date'])
 complete = full_index.merge(merged, on='Date', how='left')
 
-# === Convert sentiment to signed score (extra precaution) ===
+# Convert sentiment to signed score
 complete['Sentiment'] = complete['Sentiment'].str.lower()
 complete.loc[complete['Sentiment'] == 'negative', 'Score'] *= -1
 
-# === Save full dataset ===
+# Save full dataset
 complete[['Date', 'Title', 'Score', 'Sentiment']].to_csv("FINAL_merged_with_all_dates.csv", index=False)
 
-# === Save score-only column ===
+# Save score-only column 
 score_only = complete[['Score']]
 score_only.to_csv("NEWS_SCORE_COLUMN_only.csv", index=False)
 
-# === Average score per day ===
+# Average score per day
 daily_avg = complete.groupby('Date', as_index=False)['Score'].mean()
 daily_avg.to_csv("DAILY_AVG_SCORE.csv", index=False)

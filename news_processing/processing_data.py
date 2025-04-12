@@ -2,13 +2,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the completed file
-df = pd.read_csv("FINAL_DATA_merged_deduplicated_with_all_dates.csv")
+df = pd.read_csv("DAILY_AVG_SCORE.csv")
 df['Date'] = pd.to_datetime(df['Date'])
 
 # Sort for safety
 df.sort_values(by='Date', inplace=True)
 
-# Create a 7-day rolling mean (ignores NaNs)
+# Create a 7-day rolling mean
 df['RollingScore'] = df['Score'].rolling(window=7, min_periods=1).mean()
 
 # Plot
