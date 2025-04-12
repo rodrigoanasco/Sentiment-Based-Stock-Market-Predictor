@@ -1,5 +1,6 @@
 # 353-Project
 Sentiment Analysis on Stock Market
+
 (IMPORTANT NOTE: Due to Git push/pull errors, contributors do not show up properly. Obtain evidence of contribution by clicking on commit history.)
 
 ## Reddit Analysis
