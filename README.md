@@ -9,6 +9,9 @@ Install all required packages:
 ```
 pip install pandas numpy matplotlib seaborn scikit-learn statsmodels yfinance transformers praw langdetect langcodes 
 ```
+
+CD into the reddit_article folder for the following commands
+
 1. Get Data
 
 Set up Reddit API (provided ones are personal and only work for 2 weeks after submission)
