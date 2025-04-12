@@ -2,116 +2,91 @@
 Determining in which way the sentiment affect stock market
 
 ## News Processing
-
-
-### Finace Article (TextBlob)
-### `main.py`
-Dependencies
-
-To install all required libraries, run:
+### Setup Instructions
+Install all required packages:
 ```
-pip install gdeltdoc pandas tqdm transformers beautifulsoup4 requests scikit-learn textblob
+pip install gdeltdoc pandas tqdm transformers beautifulsoup4 requests scikit-learn textblob lxml matplotlib
 ```
+1. TextBlob-Based Pipeline
+```
+main.py
+```
+Fetches articles from GDELT and performs sentiment analysis using TextBlob.
 
-### 1. Run with TextBlob
-
-The following command runs the default pipeline from January 1 to December 31, 2024:
-
+Run:
 ```
 python main.py
 ```
+Output:
 
-This generates a CSV file named:
+- financial_2024_2024-01-01.csv
 
-```
-financial_2024_2024-01-01.csv
-```
+To adjust the date range, edit:
 
-To adjust the date range, modify the last line in `main.py`:
-
-```python
 main(date(2024, 1, 1), date(2024, 12, 31))
+
+
+parameters.py – Utility Functions
+
+This module supports the TextBlob pipeline with:
+
+- Article scraping via requests + BeautifulSoup
+- Credible domain filtering
+- Archive fallback (Wayback Machine)
+- Parallel sentiment analysis with concurrent.futures
+- Sentiment classification using TextBlob
+
+2. FinBERT-Based Pipeline
 ```
-
-### `parameters.py`
-## What It Does
-
-This file contains utility functions used for:
-
-- Checking if article URLs come from **credible sources**
-- Verifying if a website is **online**
-- **Archiving fallback** with the Wayback Machine if needed
-- Scraping article content using `BeautifulSoup`
-- Running **TextBlob** sentiment analysis on content
-- **Parallel URL processing** for performance
-
-
-
-## Dependencies
-
-Install required packages if not already done:
-
+using_finbert/main.py
 ```
-pip install gdeltdoc pandas beautifulsoup4 textblob requests lxml
-```
+Runs the same process as main.py, but uses FinBERT from Hugging Face for sentiment analysis.
 
+What It Does:
 
-### Using Finbert (Finbert)
-## Dependencies:
-Install all necessary packages with:
+- Fetches news using GDELT
+- Applies FinBERT to classify as positive, neutral, or negative
+- Saves results per year (e.g., financial_2020-01-01.csv, ..., financial_2024-01-01.csv)
 
 ```
-pip install gdeltdoc pandas tqdm transformers beautifulsoup4 requests scikit-learn lxml
+parameters_with_finbert.py
 ```
+Contains:
 
-FinBERT uses Hugging Face's Transformers library, so the `transformers` package is essential.
+- FinBERT pipeline setup
+- Transformers-based tokenization and scoring
+- Web scraping logic similar to the TextBlob version
 
-## What it does:
-
-### `main(start, end)`
-
-Processes articles over a date range, stores results into a CSV.
-
-### `process_date(current_date)`
-
-Fetches articles for one day, runs FinBERT sentiment, and formats output.
-
-## dataframes.py
-## Dependencies
-
-Install the required libraries if not already installed:
-
+Score Harmonization
 ```
-pip install pandas scikit-learn numpy
+dataframes.py
 ```
+Aligns TextBlob scores to FinBERT’s sentiment scale via linear regression.
 
-## What It Does
+What It Does:
 
-1. **Loads sentiment data** from CSV files for both TextBlob and FinBERT across years 2020 to 2024.
-2. **Adjusts sentiment polarity**:
-   - Ensures negative sentiment scores are negative values.
-   - Uses regression to map TextBlob scores onto the FinBERT scale.
-3. **Scales TextBlob scores** using a Linear Regression fit between TextBlob and FinBERT scores from 2020.
-4. **Combines and merges all data** into a single DataFrame with full date coverage.
-5. **Generates and saves** the following outputs:
-   - `FINAL_merged_with_all_dates.csv`: Main dataset with all articles, scores, and sentiments.
-   - `NEWS_SCORE_COLUMN_only.csv`: Sentiment score only (for model input or graphing).
-   - `DAILY_AVG_SCORE.csv`: Daily average sentiment score.
+1. Loads sentiment CSVs for both TextBlob and FinBERT (2020–2024)
+2. Makes negative sentiment scores negative (if not already)
+3. Trains regression model to align TextBlob scores to FinBERT
+4. Scales and clips scores to [-1, 1]
+5. Outputs:
 
+- FINAL_merged_with_all_dates.csv
+- NEWS_SCORE_COLUMN_only.csv
+- DAILY_AVG_SCORE.csv
 
-
-## processing_data.py
-## Dependencies
-
-Install required libraries using:
+### Sentiment Visualization
 
 ```
-pip install pandas matplotlib
+processing_data.py
 ```
+Visualizes sentiment trends over time using a 7-day rolling average.
 
-## What It Does
+What It Does:
 
-1. Loads `DAILY_AVG_SCORE.csv`, which should include average sentiment scores per day from 2020 to 2024.
-2. Calculates a **7-day rolling mean** to smooth fluctuations in sentiment.
-3. Generates a line plot showing sentiment over time.
-4. Saves the figure as a high-resolution PNG:
+1. Loads DAILY_AVG_SCORE.csv
+2. Applies 7-day smoothing to scores
+3. Plots sentiment trend from 2020–2024
+4. Saves output to:
+
+sentiment_over_time.png
