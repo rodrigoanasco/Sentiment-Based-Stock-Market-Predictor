@@ -1,205 +1,175 @@
-import gdeltdoc as gd
 import pandas as pd
-import requests
-from datetime import date, timedelta
-from bs4 import BeautifulSoup
-from textblob import TextBlob
-from urllib.parse import urlparse
-import concurrent.futures
-import time
-import random
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+import xgboost as xgb
+from sklearn.metrics import classification_report, accuracy_score
+import matplotlib.pyplot as plt
 
-# List of credible financial news sources
-credible_sites = [
-    "bloomberg.com", "reuters.com", "ft.com", "forbes.com", "fortune.com",
-    "marketwatch.com", "finance.yahoo.com", "wsj.com", "economist.com",
-    "cnbc.com", "cnn.com", "nytimes.com", "washingtonpost.com",
-    "businessinsider.com", "investopedia.com", "seekingalpha.com",
-    "fool.com", "npr.org", "bbc.com", "theguardian.com",
-    "usatoday.com", "latimes.com", "chicagotribune.com", "theatlantic.com",
-    "usnews.com", "msn.com", "thestreet.com", "morningstar.com",
-    "nasdaq.com", "businesstech.co.za"
+# Debug info function
+def print_df_info(df, name):
+    print(f"\n--- {name} Info ---")
+    print(f"Shape: {df.shape}")
+    print(f"NaN counts:\n{df.isna().sum()}")
+    if not df.empty:
+        print(f"First few rows:\n{df.head(3)}")
+    else:
+        print("DataFrame is EMPTY!")
+
+# Load the data with debugging
+try:
+    day = pd.read_json("stock_one_day.json")
+    print_df_info(day, "Original Data")
+except FileNotFoundError:
+    print("File not found")
+    exit(1)
+except Exception as e:
+    print(f"Error loading data: {str(e)}")
+    exit(1)
+
+# Check data structure
+print("\nDataFrame columns:", day.columns.tolist())
+print("\nDataFrame index:", day.index)
+
+# Create features with checks along the way
+# Let's check for NaN values after each transformation
+
+# First transformation
+day['daily_return'] = day["Close"].pct_change()
+print_df_info(day[['Close', 'daily_return']], "After daily_return")
+
+# Handle problematic rows immediately
+day['daily_return'] = day['daily_return'].fillna(0)
+
+day['Price_Range'] = day['High'] - day['Low']
+day['SMA_3'] = day['Close'].rolling(window=3).mean()
+print_df_info(day[['Close', 'SMA_3']], "After SMA_3")
+
+day['SMA_5'] = day['Close'].rolling(window=5).mean()
+day['EMA_3'] = day['Close'].ewm(span=3, adjust=False).mean()
+day['Volume_Change'] = day['Volume'].pct_change()
+day['Volume_Change'] = day['Volume_Change'].fillna(0)  # Fill NaN in first row
+
+day['Momentum_3'] = day['Close'] - day['Close'].shift(3)
+print_df_info(day[['Close', 'Momentum_3']], "After Momentum_3")
+
+# RSI-7 calculation with careful handling
+delta = day['Close'].diff()
+delta = delta.fillna(0)  # Handle first NaN
+gain = delta.where(delta > 0, 0)
+loss = -delta.where(delta <= 0, 0)
+avg_gain = gain.rolling(window=7).mean()
+avg_loss = loss.rolling(window=7).mean()
+# Add small epsilon to avoid division by zero
+avg_loss_safe = avg_loss.copy()
+avg_loss_safe[avg_loss_safe == 0] = 1e-10
+rs = avg_gain / avg_loss_safe
+day['RSI_7'] = 100 - (100 / (1 + rs))
+print_df_info(day[['Close', 'RSI_7']], "After RSI_7")
+
+# Target variable
+day['Target'] = (day['Close'].shift(-1) > day['Close']).astype(int)
+print_df_info(day[['Close', 'Target']], "After Target")
+
+# Before dropna, show how many rows will be dropped
+nan_count = day.isna().any(axis=1).sum()
+print(f"\nRows with any NaN values: {nan_count} out of {len(day)}")
+
+# Let's keep more data by handling NaNs differently
+features = [
+    'daily_return', 'Price_Range', 'SMA_3', 'SMA_5',
+    'EMA_3', 'Volume_Change', 'Momentum_3', 'RSI_7',
 ]
 
-# Convert to set for faster lookups
-credible_domains = set(credible_sites)
+# Instead of dropping NaN values, let's handle them appropriately
+# 1. For SMA and EMA, use forward fill
+for col in ['SMA_3', 'SMA_5', 'EMA_3']:
+    day[col] = day[col].fillna(method='ffill')
 
-def is_credible(url):
-    """Check if URL belongs to a credible domain"""
-    try:
-        parsed_url = urlparse(url)
-        domain = parsed_url.netloc.replace('www.', '')
-        return domain in credible_domains
-    except:
-        return False
+# 2. For Momentum, RSI, use 0 for initial values
+for col in ['Momentum_3', 'RSI_7']:
+    day[col] = day[col].fillna(0)
 
-def get_sentiment_from_url(url):
-    """Extract text from URL and analyze sentiment"""
-    if not url:
-        return None, None
-        
-    try:
-        # Rotating user agents to avoid detection
-        user_agents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0'
-        ]
-        
-        headers = {
-            'User-Agent': random.choice(user_agents),
-            'Accept': 'text/html,application/xhtml+xml,application/xml',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.google.com/'
-        }
-        
-        # Use a very short timeout to avoid hanging
-        response = requests.get(url, headers=headers, timeout=3)
-        
-        if response.status_code != 200:
-            return None, None
-            
-        soup = BeautifulSoup(response.text, "html.parser")
-        
-        # Get text from both paragraphs and article tags for better coverage
-        text_elements = soup.find_all(['p', 'article', 'div.article-body', 'div.story-body'])
-        text = ' '.join([elem.get_text() for elem in text_elements])
-        
-        # Limit to first 2000 characters for speed
-        text = text[:2000]
-        
-        if len(text) < 200:  # Skip if too little text was found
-            return None, None
-        
-        # Perform sentiment analysis
-        blob = TextBlob(text)
-        polarity = blob.sentiment.polarity
-        
-        if polarity > 0.1:
-            return "Positive", polarity
-        elif polarity < -0.1:
-            return "Negative", polarity
-        else:
-            return "Neutral", polarity
-    except Exception as e:
-        return None, None
+# Now check if we have NaN values in our features or target
+X = day[features]
+y = day['Target']
 
-def process_batch(date_str, urls_titles, language_list):
-    """Process a batch of articles for a given date"""
-    results = []
-    
-    for url, title, language in zip(urls_titles[0], urls_titles[1], language_list):
-        if not is_credible(url):
-            continue
-            
-        # Skip archive.org completely - too slow
-        sentiment, score = None, None
-        
-        try:
-            sentiment, score = get_sentiment_from_url(url)
-        except:
-            pass
-            
-        if sentiment and score is not None:
-            results.append({
-                "Date": date_str,
-                "Title": title,
-                "Score": score,
-                "Sentiment": sentiment,
-                "language": language
-            })
-            
-        # Stop after finding 3 valid articles
-        if len(results) >= 3:
-            break
-            
-    return results
+print_df_info(X, "Features after handling NaNs")
+print_df_info(pd.DataFrame(y), "Target after handling NaNs")
 
-def main():
-    # Date range to process
-    start_date = date(2020, 1, 1)
-    end_date = date(2020, 1, 3)
-    
-    # Initialize GDELT client once
-    gdelt = gd.GdeltDoc()
-    
-    # Pre-initialize results DataFrame
-    information = pd.DataFrame(columns=["Date", "Title", "Score", "Sentiment", "language"])
-    
-    # Define themes and keywords
-    theme = ["ECON_FINANCE", "ECON_STOCKMARKET", "ECON_INFLATION", "BUSINESS", "TECHNOLOGY"]
-    keywords = ["Apple stock", "iphone sales", 'apple sales', "inflation", 
-               "interest rates", "CPI", "Federal Reserve"]
-    
-    # Process date range in smaller chunks to avoid timeouts
-    current_start = start_date
-    
-    while current_start <= end_date:
-        current_end = min(current_start + timedelta(days=5), end_date)
-        print(f"Processing date range: {current_start} to {current_end}")
-        
-        try:
-            # Get a batch of articles for the date range
-            filters = gd.Filters(
-                keyword=keywords,
-                theme=theme,
-                start_date=current_start.strftime("%Y-%m-%d"),
-                end_date=current_end.strftime("%Y-%m-%d"),
-                country="US",
-                num_records=250  # Get more articles to increase chances of finding valid ones
-            )
-            
-            articles = gdelt.article_search(filters)
-            
-            if not articles.empty:
-                # Create a map of date -> articles
-                date_articles = {}
-                
-                for _, row in articles.iterrows():
-                    article_date = row['seendate'].date()
-                    date_str = str(article_date)
-                    
-                    if date_str not in date_articles:
-                        date_articles[date_str] = [[], [], []]  # urls, titles, languages
-                        
-                    date_articles[date_str][0].append(row['url'])
-                    date_articles[date_str][1].append(row['title'])
-                    date_articles[date_str][2].append(row['language'])
-                
-                # Process each date's articles
-                for date_str, urls_titles_langs in date_articles.items():
-                    print(f"Processing {date_str}...")
-                    
-                    # Process articles with reduced timeout
-                    results = process_batch(date_str, urls_titles_langs[:2], urls_titles_langs[2])
-                    
-                    # Add results to DataFrame
-                    for result in results[:3]:  # Take max 3 articles
-                        information.loc[len(information)] = [
-                            result["Date"], result["Title"], result["Score"], 
-                            result["Sentiment"], result["language"]
-                        ]
-                    
-                    # Fill with neutral entries if needed
-                    while len(results) < 3:
-                        information.loc[len(information)] = [date_str, None, 0, "Neutral", None]
-                        results.append({})  # Just to increment the counter
-            
-            # Save intermediate results to avoid losing progress
-            information.to_csv('financial_progress.csv', index=False)
-            
-        except Exception as e:
-            print(f"Error processing batch {current_start} to {current_end}: {e}")
-        
-        # Move to next chunk of dates
-        current_start = current_end + timedelta(days=1)
-        
-        # Rate limiting to avoid API blocks
-        time.sleep(2)
-    
-    # Final save
-    information.to_csv('financial_optimized.csv', index=False)
-    print("Completed processing!")
+# Handle any remaining NaNs
+X = X.fillna(0)
+y = y.fillna(0)  # For the last target value that might be NaN
 
-if __name__ == "__main__":
-    main()
+# Verify no NaNs remain
+assert not X.isna().any().any(), "There are still NaN values in features"
+assert not y.isna().any(), "There are still NaN values in target"
+
+# Now check if we have enough data
+if len(X) < 10:  # Arbitrary minimum threshold
+    print("WARNING: Very small dataset, results may be unreliable")
+
+# Train-test split (80/20)
+split_index = int(len(X) * 0.8)
+X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
+y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
+
+print(f"\nTraining set: {X_train.shape} samples")
+print(f"Test set: {X_test.shape} samples")
+
+# Only proceed if we have data
+if X_train.shape[0] > 0 and X_test.shape[0] > 0:
+    # Random Forest model
+    rf_model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=8,
+        min_samples_split=2,
+        class_weight='balanced',
+        random_state=42
+    )
+    rf_model.fit(X_train, y_train)
+    y_pred_rf = rf_model.predict(X_test)
+
+    # XGBoost model
+    xgb_model = xgb.XGBClassifier(
+        n_estimators=50,
+        max_depth=3,
+        learning_rate=0.1,
+        random_state=42
+    )
+    xgb_model.fit(X_train, y_train)
+    y_pred_xgb = xgb_model.predict(X_test)
+
+    # Ensemble prediction
+    ensemble_pred = ((y_pred_rf.astype(int) + y_pred_xgb.astype(int)) >= 1).astype(int)
+    
+    # Performance metrics
+    print("\nRandom Forest accuracy:", accuracy_score(y_test, y_pred_rf))
+    print("XGBoost accuracy:", accuracy_score(y_test, y_pred_xgb))
+    print("Ensemble accuracy:", accuracy_score(y_test, ensemble_pred))
+    
+    print("\nClassification Report:")
+    print(classification_report(y_test, ensemble_pred))
+
+    # Plot feature importance
+    importance_rf = pd.Series(rf_model.feature_importances_, index=features)
+    importance_xgb = pd.Series(xgb_model.feature_importances_, index=features)
+    importance_combined = (importance_rf + importance_xgb) / 2
+    importance_combined = importance_combined.sort_values(ascending=False)
+    
+    plt.figure(figsize=(10, 6))
+    importance_combined.plot(kind='bar')
+    plt.title('Important Features')
+    plt.tight_layout()
+    plt.savefig('ensemble_feature_importance.png')
+    print("Feature importance plot saved as 'ensemble_feature_importance.png'")
+    
+    # Print top features
+    print("\nTop 5 Features by Importance:")
+    for feature, importance in importance_combined.head(5).items():
+        print(f"{feature}: {importance:.4f}")
+else:
+    print("ERROR: Not enough data for training after handling NaNs")
+    print("Possible issues:")
+    print("1. Your JSON file may be empty or corrupted")
+    print("2. All rows might have been removed during feature calculation")
+    print("3. The data might not span enough days for the features requiring lookback periods")

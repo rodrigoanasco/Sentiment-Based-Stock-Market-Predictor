@@ -3,14 +3,24 @@ from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 from sklearn.metrics import classification_report, accuracy_score
 import matplotlib.pyplot as plt
-
+import os
 
 # load the data
+
 try:
+    news = pd.read_csv("news_processing/DAILY_AVG_SCORE.csv")
     day = pd.read_json("stock_one_day.json")
+    #gov = pd.read_csv("FRED/TJ/consumer_sentiment_daily.csv")
 except FileNotFoundError:
     print("file not found")
     exit(1)
+
+day['Date'] = pd.to_datetime(day['Date'])
+news['Date'] = pd.to_datetime(news['Date'])
+# gov.reset_index(inplace=True)
+# gov.rename(columns={'Unnamed: 0': 'Date'}, inplace=True)
+# gov['Date'] = pd.to_datetime(gov['Date'])
+#change the names sentiment1 sentiment2 sentiment3
 
 # good features and highest yield found
 day['daily_return'] = day["Close"].pct_change()
@@ -34,14 +44,16 @@ day['RSI_7'] = 100 - (100 / (1 + rs))
 # what is typeing to be guessing
 day['Target'] = (day['Close'].shift(-1) > day['Close']).astype(int)
 
+day_news = pd.merge(day,news,on='Date', how='inner')
+
 
 features = [
     'daily_return', 'Price_Range', 'SMA_3', 'SMA_5', 
-    'EMA_3', 'Volume_Change', 'Momentum_3', 'RSI_7',
+    'EMA_3', 'Volume_Change', 'Momentum_3', 'RSI_7',"Score"
 ]
 
-X = day[features]
-y = day['Target']
+X = day_news[features]
+y = day_news['Target']
 
 
 # Train-test split (80/20)
@@ -53,7 +65,7 @@ y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
 
 rf_model = RandomForestClassifier(
     n_estimators=100,
-    max_depth=8,
+    max_depth=5,
     min_samples_split=2,
     class_weight='balanced',
     random_state=42
@@ -71,10 +83,12 @@ xgb_model = xgb.XGBClassifier(
 xgb_model.fit(X_train, y_train)
 y_pred_xgb = xgb_model.predict(X_test)
 
-print("STOCK DATA")
-ensemble_pred =  ((y_pred_rf.astype(int) + y_pred_xgb.astype(int)) >= 1).astype(int)
+print("STOCK DATA + NEWS ARTICLES")
+ensemble_pred = ((y_pred_rf.astype(int) + y_pred_xgb.astype(int)) >= 1).astype(int)
 print(classification_report(y_test, ensemble_pred))
 
+
+# plot data
 
 
 
