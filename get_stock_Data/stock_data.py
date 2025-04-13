@@ -2,7 +2,7 @@
 # pip install yfinance 
 
 import yfinance as yf
-from datetime import datetime
+
 
 apple = yf.Ticker("AAPL")
 stock =  apple.info

@@ -230,3 +230,74 @@ python formatForModelTraining.py
 
 Output: 
 - CSV file with only the date index and the sentiment value after scaling associated with ecah date, ready for model training
+
+
+## Get Stock DATA
+### Setup Instructions
+Make sure you are in parent directory
+
+Install all packages required
+```
+pip install  yfinance 
+```
+Run the following Command
+
+```
+python -u get_stock_Data/stock_data.py
+```
+
+OutPut: 
+- Json file with only Stock data
+
+## Stock model
+### Setup Instructions
+Make sure you are in parent directory
+
+install all packages:
+```
+pip install seaborn matplotlib sklearn xgboost pandas
+```
+1. To run the base case stock model and get the heat map
+
+```
+python -u models/stock_model.py
+```
+
+outputs: 
+- png file and the classification_report in terminal
+
+1. To run the base case stock model and get the heat map
+
+```
+python -u models/stock_model.py
+```
+
+outputs: 
+- png file and the classification_report in terminal
+
+2. To run the model with goverment sentiment
+
+```
+python -u models/stock_gov_model.py
+```
+
+outputs: 
+-  classification_report in terminal
+
+3. To run the model with reddit sentiment
+
+```
+python -u models/stock_reddit_model.py
+```
+
+outputs: 
+-  classification_report in terminal
+
+4. To run the model with Financial articles sentiment
+
+```
+python -u models/stock_news_model.py
+```
+
+outputs: 
+-  classification_report in terminal
