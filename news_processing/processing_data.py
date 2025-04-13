@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load full sentiment data
-all_sentiment_df = pd.read_csv("DAILY_AVG_SCORE.csv")
+all_sentiment_df = pd.read_csv("processed_data/DAILY_AVG_SCORE.csv")
 all_sentiment_df['Date'] = pd.to_datetime(all_sentiment_df['Date'])
 all_sentiment_df.sort_values(by='Date', inplace=True)
 
@@ -17,7 +17,7 @@ plt.ylabel("Sentiment Score")
 plt.grid(True, linestyle='--', alpha=0.5)
 plt.legend()
 plt.tight_layout()
-plt.savefig("daily_sentiment_bipolar.png", dpi=300)
+plt.savefig("processed_data/daily_sentiment_bipolar.png", dpi=300)
 plt.show()
 
 #  Prepare Sentiment Data: Only 2024 
@@ -25,7 +25,7 @@ sentiment_df = all_sentiment_df[all_sentiment_df['Date'].dt.year == 2024]
 
 # Load stock market data
 stock_columns = ['Date', 'Score', 'Sentiment', 'Open', 'Close', 'Volume', 'Percent_Diff']
-stock_df = pd.read_csv("stock_market_price_2024.csv", names=stock_columns, header=0)
+stock_df = pd.read_csv("processed_data/stock_market_price_2024.csv", names=stock_columns, header=0)
 stock_df['Date'] = pd.to_datetime(stock_df['Date'])
 stock_df.sort_values(by='Date', inplace=True)
 
@@ -54,7 +54,7 @@ plt.title("Sentiment vs Apple Stock Price (2024)", fontsize=16)
 fig.tight_layout()
 plt.grid(True)
 plt.legend(loc='upper left')
-plt.savefig("sentiment_vs_apple_price_2024.png", dpi=300)
+plt.savefig("processed_data/sentiment_vs_apple_price_2024.png", dpi=300)
 plt.show()
 
 

@@ -96,12 +96,12 @@ complete['Sentiment'] = complete['Sentiment'].str.lower()
 complete.loc[complete['Sentiment'] == 'negative', 'Score'] *= -1
 
 # Save full dataset
-complete[['Date', 'Title', 'Score', 'Sentiment']].to_csv("FINAL_merged_with_all_dates.csv", index=False)
+complete[['Date', 'Title', 'Score', 'Sentiment']].to_csv("processed_data/FINAL_merged_with_all_dates.csv", index=False)
 
 # Save score-only column 
 score_only = complete[['Score']]
-score_only.to_csv("NEWS_SCORE_COLUMN_only.csv", index=False)
+score_only.to_csv("processed_data/NEWS_SCORE_COLUMN_only.csv", index=False)
 
 # Average score per day
 daily_avg = complete.groupby('Date', as_index=False)['Score'].mean()
-daily_avg.to_csv("DAILY_AVG_SCORE.csv", index=False)
+daily_avg.to_csv("processed_data/DAILY_AVG_SCORE.csv", index=False)
