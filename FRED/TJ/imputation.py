@@ -2,13 +2,13 @@ import pandas as pd
 import numpy as np
 
 def safe_impute(df):
-    """Robust imputation with fallbacks"""
+    """imputation for coporate profits as it follows different pattern"""
     try:
-        # Try quadratic interpolation if SciPy available
+        # Trying quadratic interpolation 
         from scipy import interpolate
         df['corp_profits'] = df['corp_profits'].interpolate(method='quadratic')
     except ImportError:
-        # Fallback to polynomial interpolation if SciPy missing
+        # polynomial interplote id quadtartic does not wokr 
         df['corp_profits'] = df['corp_profits'].interpolate(method='polynomial', order=2)
     
     return df
