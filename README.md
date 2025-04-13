@@ -138,7 +138,8 @@ This module contains
 - Transformers-based tokenization and scoring
 - Web scraping logic similar to the TextBlob version
 
-Score Harmonization
+3. Score Harmonization
+
 make sure you are in:
 ```
 cd news_processing
@@ -166,7 +167,7 @@ What It Does:
 - NEWS_SCORE_COLUMN_only.csv
 - DAILY_AVG_SCORE.csv
 
-Sentiment Visualization
+4. Sentiment Visualization
 
 make sure you are in:
 ```
