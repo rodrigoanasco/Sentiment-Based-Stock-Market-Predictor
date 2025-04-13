@@ -18,7 +18,7 @@ stock_data = data[['Open', 'High', 'Low', 'Close', 'Volume', 'Dividends']]
 splits_data = splits.to_frame(name='Splits')
 stock_data = stock_data.join(splits_data, how='left')
 stock_data['Date'] =stock_data.index.date
-stock_data.to_json("stock_one_day" + ".json",orient="records", date_format="iso")
+stock_data.to_json("get_stock_Data/stock_one_day" + ".json",orient="records", date_format="iso")
 
 
 

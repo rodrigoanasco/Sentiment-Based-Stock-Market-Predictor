@@ -1,13 +1,14 @@
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.discriminant_analysis import StandardScaler
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 import xgboost as xgb
 from sklearn.metrics import classification_report, accuracy_score
 import matplotlib.pyplot as plt
-
+import seaborn as sns
 
 # load the data
 try:
-    day = pd.read_json("stock_one_day.json")
+    day = pd.read_json("get_stock_Data/stock_one_day.json")
 except FileNotFoundError:
     print("file not found")
     exit(1)
@@ -20,7 +21,7 @@ day['SMA_5'] = day['Close'].rolling(window=5).mean()
 day['EMA_3'] = day['Close'].ewm(span=3, adjust=False).mean()
 day['Volume_Change'] = day['Volume'].pct_change()
 day['Momentum_3'] = day['Close'] - day['Close'].shift(3)
-
+day['Volatility_5'] = day['daily_return'].rolling(window=5).std()
 #https://blog.quantinsti.com/rsi-indicator/
 # getting RSI-7
 delta = day['Close'].diff()
@@ -37,16 +38,17 @@ day['Target'] = (day['Close'].shift(-1) > day['Close']).astype(int)
 
 features = [
     'daily_return', 'Price_Range', 'SMA_3', 'SMA_5', 
-    'EMA_3', 'Volume_Change', 'Momentum_3', 'RSI_7',
+    'EMA_3', 'Volume_Change', 'Momentum_3', 'RSI_7', 'Volatility_5'
 ]
 
 X = day[features]
 y = day['Target']
-
-
+X = X.ffill().bfill()
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 # Train-test split (80/20)
-split_index = int(len(X) * 0.8) # for continous data
-X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
+split_index = int(len(X_scaled) * 0.8) # for continous data
+X_train, X_test = X_scaled[:split_index], X_scaled[split_index:]
 y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
 
 
@@ -68,16 +70,35 @@ xgb_model = xgb.XGBClassifier(
     learning_rate=0.1,
     random_state=42
 )
-xgb_model.fit(X_train, y_train)
-y_pred_xgb = xgb_model.predict(X_test)
+
+ensemble = VotingClassifier(
+    estimators=[
+        ('rf', rf_model),
+        ('xgb', xgb_model)
+    ],
+    voting='soft'
+)
+ensemble.fit(X_train, y_train)
+y_pred = ensemble.predict(X_test)
 
 print("STOCK DATA")
-ensemble_pred =  ((y_pred_rf.astype(int) + y_pred_xgb.astype(int)) >= 1).astype(int)
-print(classification_report(y_test, ensemble_pred))
+print(classification_report(y_test, y_pred))
 
 
 
+correltion = day[features + ['Target']].corr()
 
+# Convert the Series to a DataFrame for heatmap visualization
+corr_df = correltion
+
+# Create a heatmap focusing on feature correlations with the target
+plt.figure(figsize=(5, len(features) * 0.6))
+sns.heatmap(corr_df, annot=True, cmap='coolwarm', fmt=".2f", cbar=True)
+plt.title("Feature Correlation")
+plt.ylabel("Features")
+plt.xlabel("target")
+plt.tight_layout()
+plt.savefig("models/Heat Map of indicators")
 
 
 

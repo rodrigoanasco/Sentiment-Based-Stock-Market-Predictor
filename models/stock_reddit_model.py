@@ -13,7 +13,7 @@ Reddit sentiment is combined with historical stock data
 
 # Load data from CSV files
 try:
-    day = pd.read_json("stock_one_day.json")
+    day = pd.read_json("get_stock_Data/stock_one_day.json")
     reddit = pd.read_csv("reddit_article/combined_reddit.csv")
 
 except FileNotFoundError:
@@ -104,5 +104,5 @@ ensemble.fit(X_train, y_train)
 y_pred = ensemble.predict(X_test)
 
 # Report
-print("STOCK + REDDIT DATA — ENSEMBLE MODEL")
+print("STOCK + REDDIT DATA")
 print(classification_report(y_test, y_pred))

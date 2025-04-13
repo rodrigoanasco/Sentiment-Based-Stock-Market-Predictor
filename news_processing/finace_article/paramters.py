@@ -7,10 +7,10 @@ from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from textblob import TextBlob
 from urllib.parse import urlparse
-import signal
+
 from functools import lru_cache
 import concurrent.futures
-import time
+
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -97,7 +97,7 @@ def get_archived_url(original_url):
 
 def get_sentiment_from_url(url):
     if not url:
-        return "URL not available", None
+        return "URL not  available", None
     
     try:
         response = session.get(url, timeout=10)
@@ -127,8 +127,7 @@ def get_sentiment_from_url(url):
         return f"Error: {str(e)[:100]}", None
 
 def pipeline_sentiment(url):
-    """Full pipeline for a single URL: Check credibility, availability, 
-       and sentiment from either live URL or archived snapshot."""
+   
     if not is_credible(url):
         return "Not credible", None
     
@@ -139,7 +138,7 @@ def pipeline_sentiment(url):
         return get_sentiment_from_url(archived_url)
 
 def parallel_requests(urls, max_workers=10):
-    """Process multiple URLs in parallel, returning a dict {url: (sentiment, polarity)}."""
+
     # Filter out None or empty URLs first
     valid_urls = [url for url in urls if url]
     
