@@ -110,6 +110,7 @@ This module supports the TextBlob pipeline with:
 - Sentiment classification using TextBlob
 
 2. FinBERT-Based Pipeline
+
 Make sure you are inside using_finbert:
 ```
 cd news_processing/using_finbert
