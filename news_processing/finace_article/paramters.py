@@ -60,7 +60,7 @@ adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=20, pool_maxs
 session.mount("http://", adapter)
 session.mount("https://", adapter)
 
-# Set default headers to mimic a browser
+# Set default headers to mimic a browser, gotten https://brightdata.com/blog/web-data/requests-user-agent?utm_source=chatgpt.com
 session.headers.update({
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -137,7 +137,7 @@ def pipeline_sentiment(url):
         archived_url = get_archived_url(url)
         return get_sentiment_from_url(archived_url)
 
-def parallel_requests(urls, max_workers=10):
+def parallel_requests(urls, max_workers=10): #https://medium.com/%40smrati.katiyar/introduction-to-concurrent-futures-in-python-009fe1d4592c
 
     # Filter out None or empty URLs first
     valid_urls = [url for url in urls if url]
