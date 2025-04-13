@@ -35,7 +35,7 @@ def prepare_daily_data(df):
     
     return df
 
-# 5.process the data
+# 5.processing the data
 df_daily = prepare_daily_data(df_daily)
 
 # 6. sentiment wightts for refernce, not necessary for the report or code

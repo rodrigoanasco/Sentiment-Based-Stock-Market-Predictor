@@ -156,3 +156,77 @@ What It Does:
 4. Saves output to:
 
 sentiment_over_time.png
+
+
+## FRED Data Analysis
+### Setup Instructions
+Install all required packages:
+```
+pip install pandas numpy yfinance fredapi scikit-learn matplotlib seaborn
+```
+
+CD into the FRED FOlder and then TJ folder
+
+1. Data Acquisition
+
+Get FRED Api key from https://fred.stlouisfed.org/docs/api/api_key.html for access to FRED needs to be inputted in dataFetching.py
+
+
+Then run the following command:
+```
+python dataFetching.py
+```
+
+Output:
+- CSV file(s) between the specified years containing raw data with FRED economic indicators alongside AAPL prce from yfinance
+
+2. Cleaning Data
+
+Input csv file: CSV file from dataFetching.py
+
+Run the following command:
+
+```
+python imputation.py
+```
+
+Output:
+- CSV file that contains montlhy data with any missing gaps within 
+
+3. Analysis
+
+Input csv file: CSV file from imputation.py
+
+Run the following command:
+
+```
+python analyzeData.py
+```
+
+Output: (.png)
+- Time-series plot of key relationships
+- heatmap with correlation values for each indicator with APPL price and one another
+
+4. Prepping data for model training
+
+Input csv file: CSV file from imputation.py
+
+Run the following command:
+
+```
+python imputationDaily.py
+```
+
+Output: 
+- CSV file with imputation, transitioning from monthly to daily, with scaling of sentiment val to a range of [-1, 1], since this is the format for my group members data
+
+Input csv file: CSV file from imputationDaily.py
+
+Run the following command:
+
+```
+python formatForModelTraining.py
+```
+
+Output: 
+- CSV file with only the date index and the sentiment value after scaling associated with ecah date, ready for model training
