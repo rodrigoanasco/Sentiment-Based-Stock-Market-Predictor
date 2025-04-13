@@ -75,6 +75,13 @@ Install all required packages:
 pip install gdeltdoc pandas tqdm transformers beautifulsoup4 requests scikit-learn textblob lxml matplotlib
 ```
 1. TextBlob-Based Pipeline
+
+Make sure you are inside finace_article:
+```
+cd news_processing/finace_article
+```
+
+Then you will see these functions:
 ```
 main.py
 ```
@@ -103,31 +110,49 @@ This module supports the TextBlob pipeline with:
 - Sentiment classification using TextBlob
 
 2. FinBERT-Based Pipeline
+Make sure you are inside using_finbert:
 ```
-using_finbert/main.py
+cd news_processing/using_finbert
+```
+
+Then you will see these functions:
+```
+main_with_finbert.py
 ```
 Runs the same process as main.py, but uses FinBERT from Hugging Face for sentiment analysis.
-
+Run:
+```
+python main_with_finbert.py
+```
 What It Does:
 
 - Fetches news using GDELT
 - Applies FinBERT to classify as positive, neutral, or negative
 - Saves results per year (e.g., financial_2020-01-01.csv, ..., financial_2024-01-01.csv)
 
-```
-parameters_with_finbert.py
-```
-Contains:
+parameters.py – Utility Functions
+
+This module contains
 
 - FinBERT pipeline setup
 - Transformers-based tokenization and scoring
 - Web scraping logic similar to the TextBlob version
 
 Score Harmonization
+make sure you are in:
+```
+cd news_processing
+```
+
+There you will see the file:
 ```
 dataframes.py
 ```
 Aligns TextBlob scores to FinBERT’s sentiment scale via linear regression.
+Run:
+```
+run dataframes.py
+```
 
 What It Does:
 
@@ -136,26 +161,36 @@ What It Does:
 3. Trains regression model to align TextBlob scores to FinBERT
 4. Scales and clips scores to [-1, 1]
 5. Outputs:
-
+(all inside the folder "processed data")
 - FINAL_merged_with_all_dates.csv
 - NEWS_SCORE_COLUMN_only.csv
 - DAILY_AVG_SCORE.csv
 
-### Sentiment Visualization
+Sentiment Visualization
 
+make sure you are in:
+```
+cd news_processing
+```
+
+There you will see the file:
 ```
 processing_data.py
 ```
-Visualizes sentiment trends over time using a 7-day rolling average.
+Visualizes sentiment trends over time.
+Run:
+```
+run processing_data.py
+```
 
 What It Does:
 
 1. Loads DAILY_AVG_SCORE.csv
-2. Applies 7-day smoothing to scores
-3. Plots sentiment trend from 2020–2024
-4. Saves output to:
-
-sentiment_over_time.png
+2. Plots sentiment trend from 2020–2024
+3. Compares sentiment trend of 2024 with apple stocks of 2024
+4. Saves output to folder "processed_data":
+    - daily_sentiment_bipolar.png
+    - sentiment_vs_apple_price_2024.png
 
 
 ## FRED Data Analysis
