@@ -268,36 +268,36 @@ outputs:
 
 1. To run the base case stock model and get the heat map
 
-```
-python -u models/stock_model.py
-```
+    ```
+    python -u models/stock_model.py
+    ```
 
-outputs: 
-- png file and the classification_report in terminal
+    outputs: 
+    - png file and the classification_report in terminal
 
 2. To run the model with goverment sentiment
 
-```
-python -u models/stock_gov_model.py
-```
+    ```
+    python -u models/stock_gov_model.py
+    ```
 
-outputs: 
--  classification_report in terminal
+    outputs: 
+    -  classification_report in terminal
 
 3. To run the model with reddit sentiment
 
-```
-python -u models/stock_reddit_model.py
-```
+    ```
+    python -u models/stock_reddit_model.py
+    ```
 
-outputs: 
--  classification_report in terminal
+    outputs: 
+    -  classification_report in terminal
 
 4. To run the model with Financial articles sentiment
 
-```
-python -u models/stock_news_model.py
-```
+    ```
+    python -u models/stock_news_model.py
+    ```
 
-outputs: 
--  classification_report in terminal
+    outputs: 
+    -  classification_report in terminal
